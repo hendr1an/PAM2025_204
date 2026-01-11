@@ -1,22 +1,17 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
-    alias(libs.plugins.kotlin.compose)
-    id("com.google.gms.google-services")
+    alias(libs.plugins.google.services)
 }
 
 android {
-
     namespace = "com.example.crabsupply"
-
-    compileSdk = 34
+    compileSdk = 34 // Kita pakai 34 yang Stabil
 
     defaultConfig {
-
-        applicationId = "com.example.crabsupply"
-
+        applicationId = "com.gyan.crabsupply"
         minSdk = 26
-        targetSdk = 34
+        targetSdk = 34 // Kita pakai 34 yang Stabil
         versionCode = 1
         versionName = "1.0"
 
@@ -33,15 +28,17 @@ android {
         }
     }
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
+        sourceCompatibility = JavaVersion.VERSION_1_8
+        targetCompatibility = JavaVersion.VERSION_1_8
     }
     kotlinOptions {
-        jvmTarget = "11"
+        jvmTarget = "1.8"
     }
     buildFeatures {
-        // Catatan: Project Anda menggunakan Jetpack Compose (Modern UI)
         compose = true
+    }
+    composeOptions {
+        kotlinCompilerExtensionVersion = "1.5.1"
     }
 }
 
@@ -55,7 +52,11 @@ dependencies {
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
 
-    // Testing
+    // Firebase (Versi aman tanpa libs.versions.toml dulu biar simpel)
+    implementation("com.google.firebase:firebase-auth:22.3.1")
+    implementation("com.google.firebase:firebase-firestore:24.10.3")
+    implementation("com.google.firebase:firebase-storage:20.3.0")
+
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -63,9 +64,4 @@ dependencies {
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
-    implementation(platform("com.google.firebase:firebase-bom:32.7.0"))
-    implementation("com.google.firebase:firebase-analytics")
-    implementation("com.google.firebase:firebase-auth")       // Untuk Login
-    implementation("com.google.firebase:firebase-firestore")  // Untuk Database Harga
-    implementation("com.google.firebase:firebase-storage")    // Untuk Upload Foto Bukti Bayar
 }
