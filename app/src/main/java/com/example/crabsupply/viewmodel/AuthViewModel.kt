@@ -33,4 +33,16 @@ class AuthViewModel : ViewModel() {
     fun resetStatus() {
         _authStatus.value = null
     }
+
+    fun login(email: String, pass: String) {
+        _isLoading.value = true
+        repository.loginUser(email, pass) { success, message ->
+            _isLoading.value = false
+            if (success) {
+                _authStatus.value = "LOGIN_SUCCESS" // Kode khusus biar layar tahu
+            } else {
+                _authStatus.value = message
+            }
+        }
+    }
 }
