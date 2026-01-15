@@ -19,6 +19,7 @@ import com.example.crabsupply.ui.auth.RegisterScreen
 import com.example.crabsupply.ui.buyer.HomeScreen
 import com.example.crabsupply.ui.theme.CrabSupplyTheme
 import com.example.crabsupply.viewmodel.AdminViewModel
+import com.google.firebase.auth.FirebaseAuth
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -40,9 +41,12 @@ class MainActivity : ComponentActivity() {
                         }
                     }
 
+                    val currentUser = FirebaseAuth.getInstance().currentUser
+                    val startDestination = if (currentUser != null) "home" else "login"
+
                     // Variabel Navigasi & Data Sementara
-                    var currentScreen by remember { mutableStateOf("login") }
-                    var selectedProduct by remember { mutableStateOf<Product?>(null) } // Wadah data edit
+                    var currentScreen by remember { mutableStateOf(startDestination) }
+                    var selectedProduct by remember { mutableStateOf<Product?>(null) }
 
                     when (currentScreen) {
                         "login" -> {
