@@ -49,6 +49,18 @@ class AdminViewModel : ViewModel() {
                 _uploadStatus.value = message
             }
         }
+
+        fun deleteProduct(productId: String) {
+            _isLoading.value = true
+            repository.deleteProduct(productId) { success, message ->
+                _isLoading.value = false
+                if (success) {
+                    _uploadStatus.value = "DELETE_SUCCESS" // Kode khusus
+                } else {
+                    _uploadStatus.value = message
+                }
+            }
+        }
     }
 
     fun resetStatus() {
