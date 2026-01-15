@@ -19,4 +19,18 @@ class ProductRepository {
             emptyList() // Kalau error, kembalikan list kosong
         }
     }
+
+    fun addProduct(product: Product, onResult: (Boolean, String) -> Unit) {
+        // Kita biarkan Firebase membuat ID unik otomatis (.add)
+        firestore.collection("products")
+            .add(product)
+            .addOnSuccessListener { documentReference ->
+                // Update ID di dalam dokumen agar sama dengan ID otomatisnya (Opsional tapi rapi)
+                documentReference.update("id", documentReference.id)
+                onResult(true, "Produk Berhasil Ditambahkan!")
+            }
+            .addOnFailureListener { e ->
+                onResult(false, "Gagal upload: ${e.message}")
+            }
+    }
 }
