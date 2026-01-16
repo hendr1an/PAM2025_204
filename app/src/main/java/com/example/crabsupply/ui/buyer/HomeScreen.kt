@@ -16,8 +16,9 @@ import java.util.Locale
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.List // Ikon Admin
-import androidx.compose.material.icons.filled.DateRange // Ikon Buyer (History)
+import androidx.compose.material.icons.filled.List
+import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.Search // Ikon Search
 import androidx.compose.ui.Alignment
 import com.example.crabsupply.data.model.Product
 
@@ -29,36 +30,31 @@ fun HomeScreen(
     onEditClick: (Product) -> Unit = {},
     onDeleteClick: (Product) -> Unit = {},
     onProductClick: (Product) -> Unit = {},
-
-    // KITA PECAH JADI DUA AKSI:
-    onAdminOrdersClick: () -> Unit = {}, // 1. Klik List Pesanan (Admin)
-    onBuyerHistoryClick: () -> Unit = {} // 2. Klik Riwayat (Pembeli)
+    onAdminOrdersClick: () -> Unit = {},
+    onBuyerHistoryClick: () -> Unit = {}
 ) {
     val viewModel: HomeViewModel = viewModel()
 
-    val productList by viewModel.products.collectAsState()
+    // Ambil data hasil filter, BUKAN data mentah
+    val productList by viewModel.filteredProducts.collectAsState()
     val role by viewModel.userRole.collectAsState()
+    val searchText by viewModel.searchQuery.collectAsState() // Text yang diketik
 
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text("Katalog ($role)") },
-
-                // LOGIKA IKON POJOK KIRI ATAS
                 navigationIcon = {
                     if (role == "admin") {
-                        // Kalau Admin: Lihat ikon List (Kelola Pesanan)
                         IconButton(onClick = onAdminOrdersClick) {
                             Icon(Icons.Default.List, contentDescription = "Kelola Pesanan")
                         }
                     } else {
-                        // Kalau Buyer: Lihat ikon Kalender (Riwayat Belanja)
                         IconButton(onClick = onBuyerHistoryClick) {
                             Icon(Icons.Default.DateRange, contentDescription = "Riwayat Pesanan")
                         }
                     }
                 },
-
                 actions = {
                     TextButton(onClick = {
                         viewModel.logout()
@@ -70,7 +66,6 @@ fun HomeScreen(
             )
         },
         floatingActionButton = {
-            // Tombol Tambah Produk hanya untuk Admin
             if (role == "admin") {
                 FloatingActionButton(
                     onClick = onAddProductClick,
@@ -82,26 +77,52 @@ fun HomeScreen(
             }
         }
     ) { paddingValues ->
-        LazyColumn(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
                 .padding(16.dp)
         ) {
-            items(productList) { product ->
-                ProductCard(
-                    product = product,
-                    isAdmin = (role == "admin"),
-                    onEdit = { onEditClick(product) },
-                    onDelete = { onDeleteClick(product) },
-                    onClick = { onProductClick(product) }
-                )
-                Spacer(modifier = Modifier.height(12.dp))
+            // --- KOLOM PENCARIAN (BARU) ---
+            OutlinedTextField(
+                value = searchText,
+                onValueChange = { viewModel.onSearchTextChange(it) },
+                modifier = Modifier.fillMaxWidth(),
+                placeholder = { Text("Cari Kepiting (Ex: Rajungan)") },
+                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                shape = MaterialTheme.shapes.medium
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // --- DAFTAR PRODUK ---
+            LazyColumn(modifier = Modifier.fillMaxSize()) {
+                if (productList.isEmpty()) {
+                    item {
+                        Text(
+                            text = "Produk tidak ditemukan.",
+                            modifier = Modifier.padding(8.dp),
+                            color = MaterialTheme.colorScheme.secondary
+                        )
+                    }
+                }
+
+                items(productList) { product ->
+                    ProductCard(
+                        product = product,
+                        isAdmin = (role == "admin"),
+                        onEdit = { onEditClick(product) },
+                        onDelete = { onDeleteClick(product) },
+                        onClick = { onProductClick(product) }
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                }
             }
         }
     }
 }
 
+// ProductCard Tetap Sama (Tidak Perlu Diubah)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProductCard(
