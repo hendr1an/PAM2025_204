@@ -13,10 +13,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.crabsupply.data.model.Product
 import com.example.crabsupply.ui.admin.AddProductScreen
+import com.example.crabsupply.ui.admin.AdminDashboardScreen // <--- IMPORT BARU
 import com.example.crabsupply.ui.admin.AdminOrderScreen
 import com.example.crabsupply.ui.admin.EditProductScreen
 import com.example.crabsupply.ui.auth.LoginScreen
-import com.example.crabsupply.ui.auth.ProfileScreen // <--- IMPORT BARU (PROFIL)
+import com.example.crabsupply.ui.auth.ProfileScreen
 import com.example.crabsupply.ui.auth.RegisterScreen
 import com.example.crabsupply.ui.buyer.BuyerOrderScreen
 import com.example.crabsupply.ui.buyer.HomeScreen
@@ -30,112 +31,52 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             CrabSupplyTheme {
-                Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background
-                ) {
-                    // SETUP ADMIN VIEWMODEL
+                Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
                     val adminViewModel: AdminViewModel = viewModel()
                     val deleteStatus by adminViewModel.uploadStatus.collectAsState()
                     val context = LocalContext.current
 
-                    // Notifikasi Hapus
                     LaunchedEffect(deleteStatus) {
                         if (deleteStatus == "DELETE_SUCCESS") {
-                            Toast.makeText(context, "Produk berhasil dihapus!", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, "Produk dihapus!", Toast.LENGTH_SHORT).show()
                             adminViewModel.resetStatus()
                         }
                     }
 
-                    // AUTO LOGIN
                     val currentUser = FirebaseAuth.getInstance().currentUser
                     val startDestination = if (currentUser != null) "home" else "login"
 
-                    // Navigasi & State
                     var currentScreen by remember { mutableStateOf(startDestination) }
-                    var selectedProduct by remember { mutableStateOf<Product?>(null) } // Menyimpan produk yang dipilih
+                    var selectedProduct by remember { mutableStateOf<Product?>(null) }
 
                     when (currentScreen) {
-                        "login" -> {
-                            LoginScreen(
-                                onLoginSuccess = { currentScreen = "home" },
-                                onRegisterClick = { currentScreen = "register" }
-                            )
-                        }
-                        "register" -> {
-                            RegisterScreen(
-                                onRegisterSuccess = { currentScreen = "login" },
-                                onLoginClick = { currentScreen = "login" }
-                            )
-                        }
-                        "home" -> {
-                            HomeScreen(
-                                // --- UPDATE: LOGOUT DIHAPUS, GANTI KE PROFIL ---
-                                onProfileClick = {
-                                    currentScreen = "profile"
-                                },
+                        "login" -> LoginScreen(onLoginSuccess = { currentScreen = "home" }, onRegisterClick = { currentScreen = "register" })
+                        "register" -> RegisterScreen(onRegisterSuccess = { currentScreen = "login" }, onLoginClick = { currentScreen = "login" })
+                        "home" -> HomeScreen(
+                            onProfileClick = { currentScreen = "profile" },
+                            onAddProductClick = { currentScreen = "add_product" },
+                            onEditClick = { product -> selectedProduct = product; currentScreen = "edit_product" },
+                            onDeleteClick = { product -> adminViewModel.deleteProduct(product.id) },
+                            onProductClick = { product -> selectedProduct = product; currentScreen = "detail_product" },
 
-                                onAddProductClick = { currentScreen = "add_product" },
+                            // UPDATE NAVIGASI: Ke Dashboard dulu
+                            onAdminDashboardClick = { currentScreen = "admin_dashboard" },
+                            onBuyerHistoryClick = { currentScreen = "buyer_orders" }
+                        )
+                        "add_product" -> AddProductScreen(onBackClick = { currentScreen = "home" })
+                        "edit_product" -> selectedProduct?.let { EditProductScreen(productToEdit = it, onBackClick = { currentScreen = "home" }) }
+                        "detail_product" -> selectedProduct?.let { ProductDetailScreen(product = it, onBackClick = { currentScreen = "home" }) }
+                        "profile" -> ProfileScreen(onBackClick = { currentScreen = "home" }, onLogoutSuccess = { currentScreen = "login" })
+                        "buyer_orders" -> BuyerOrderScreen(onBackClick = { currentScreen = "home" })
 
-                                // Aksi Edit (Admin)
-                                onEditClick = { product ->
-                                    selectedProduct = product
-                                    currentScreen = "edit_product"
-                                },
-                                // Aksi Hapus (Admin)
-                                onDeleteClick = { product ->
-                                    adminViewModel.deleteProduct(product.id)
-                                },
-                                // Aksi Klik Produk (Buyer) -> Ke Detail Pesanan
-                                onProductClick = { product ->
-                                    selectedProduct = product
-                                    currentScreen = "detail_product"
-                                },
-
-                                // Navigasi Fitur Tambahan
-                                onAdminOrdersClick = { currentScreen = "admin_orders" },
-                                onBuyerHistoryClick = { currentScreen = "buyer_orders" }
-                            )
-                        }
-                        "add_product" -> {
-                            AddProductScreen(
-                                onBackClick = { currentScreen = "home" }
-                            )
-                        }
-                        "edit_product" -> {
-                            selectedProduct?.let { product ->
-                                EditProductScreen(
-                                    productToEdit = product,
-                                    onBackClick = { currentScreen = "home" }
-                                )
-                            }
-                        }
-                        "detail_product" -> {
-                            selectedProduct?.let { product ->
-                                ProductDetailScreen(
-                                    product = product,
-                                    onBackClick = { currentScreen = "home" }
-                                )
-                            }
-                        }
-                        "admin_orders" -> {
-                            AdminOrderScreen(
-                                onBackClick = { currentScreen = "home" }
-                            )
-                        }
-                        "buyer_orders" -> {
-                            BuyerOrderScreen(
-                                onBackClick = { currentScreen = "home" }
-                            )
-                        }
-
-                        // --- HALAMAN BARU: PROFIL USER ---
-                        "profile" -> {
-                            ProfileScreen(
-                                onBackClick = { currentScreen = "home" },
-                                onLogoutSuccess = { currentScreen = "login" } // Logout dilakukan di sini
-                            )
-                        }
+                        // --- ALUR ADMIN BARU ---
+                        "admin_dashboard" -> AdminDashboardScreen(
+                            onBackClick = { currentScreen = "home" },
+                            onSeeOrdersClick = { currentScreen = "admin_orders" } // Dari Dashboard ke List Pesanan
+                        )
+                        "admin_orders" -> AdminOrderScreen(
+                            onBackClick = { currentScreen = "admin_dashboard" } // Balik ke Dashboard
+                        )
                     }
                 }
             }
