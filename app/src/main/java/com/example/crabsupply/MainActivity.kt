@@ -16,8 +16,9 @@ import com.example.crabsupply.ui.admin.AddProductScreen
 import com.example.crabsupply.ui.admin.AdminOrderScreen
 import com.example.crabsupply.ui.admin.EditProductScreen
 import com.example.crabsupply.ui.auth.LoginScreen
+import com.example.crabsupply.ui.auth.ProfileScreen // <--- IMPORT BARU (PROFIL)
 import com.example.crabsupply.ui.auth.RegisterScreen
-import com.example.crabsupply.ui.buyer.BuyerOrderScreen // <--- IMPORT BARU (RIWAYAT)
+import com.example.crabsupply.ui.buyer.BuyerOrderScreen
 import com.example.crabsupply.ui.buyer.HomeScreen
 import com.example.crabsupply.ui.buyer.ProductDetailScreen
 import com.example.crabsupply.ui.theme.CrabSupplyTheme
@@ -52,7 +53,7 @@ class MainActivity : ComponentActivity() {
 
                     // Navigasi & State
                     var currentScreen by remember { mutableStateOf(startDestination) }
-                    var selectedProduct by remember { mutableStateOf<Product?>(null) }
+                    var selectedProduct by remember { mutableStateOf<Product?>(null) } // Menyimpan produk yang dipilih
 
                     when (currentScreen) {
                         "login" -> {
@@ -69,7 +70,11 @@ class MainActivity : ComponentActivity() {
                         }
                         "home" -> {
                             HomeScreen(
-                                onLogoutClick = { currentScreen = "login" },
+                                // --- UPDATE: LOGOUT DIHAPUS, GANTI KE PROFIL ---
+                                onProfileClick = {
+                                    currentScreen = "profile"
+                                },
+
                                 onAddProductClick = { currentScreen = "add_product" },
 
                                 // Aksi Edit (Admin)
@@ -87,15 +92,9 @@ class MainActivity : ComponentActivity() {
                                     currentScreen = "detail_product"
                                 },
 
-                                // --- UPDATE NAVIGASI ---
-                                // 1. Admin klik List -> Ke Halaman Kelola
-                                onAdminOrdersClick = {
-                                    currentScreen = "admin_orders"
-                                },
-                                // 2. Buyer klik History -> Ke Halaman Riwayat
-                                onBuyerHistoryClick = {
-                                    currentScreen = "buyer_orders"
-                                }
+                                // Navigasi Fitur Tambahan
+                                onAdminOrdersClick = { currentScreen = "admin_orders" },
+                                onBuyerHistoryClick = { currentScreen = "buyer_orders" }
                             )
                         }
                         "add_product" -> {
@@ -119,18 +118,22 @@ class MainActivity : ComponentActivity() {
                                 )
                             }
                         }
-
-                        // HALAMAN ADMIN: KELOLA PESANAN
                         "admin_orders" -> {
                             AdminOrderScreen(
                                 onBackClick = { currentScreen = "home" }
                             )
                         }
-
-                        // HALAMAN BUYER: RIWAYAT PESANAN (BARU)
                         "buyer_orders" -> {
                             BuyerOrderScreen(
                                 onBackClick = { currentScreen = "home" }
+                            )
+                        }
+
+                        // --- HALAMAN BARU: PROFIL USER ---
+                        "profile" -> {
+                            ProfileScreen(
+                                onBackClick = { currentScreen = "home" },
+                                onLogoutSuccess = { currentScreen = "login" } // Logout dilakukan di sini
                             )
                         }
                     }

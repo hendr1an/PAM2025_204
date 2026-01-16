@@ -88,4 +88,34 @@ class AuthRepository {
             onResult("buyer")
         }
     }
+
+    fun updateUserProfile(userId: String, name: String, phone: String, onResult: (Boolean, String) -> Unit) {
+        val updates = mapOf(
+            "name" to name,
+            "phone" to phone
+        )
+
+        firestore.collection("users").document(userId)
+            .update(updates)
+            .addOnSuccessListener {
+                onResult(true, "Profil berhasil diupdate!")
+            }
+            .addOnFailureListener { e ->
+                onResult(false, "Gagal update: ${e.message}")
+            }
+    }
+
+    // FUNGSI BARU: Ambil Detail User (Untuk ditampilkan di form profile)
+    fun getUserDetail(userId: String, onResult: (User?) -> Unit) {
+        firestore.collection("users").document(userId).get()
+            .addOnSuccessListener { document ->
+                if (document.exists()) {
+                    val user = document.toObject(User::class.java)
+                    onResult(user)
+                } else {
+                    onResult(null)
+                }
+            }
+            .addOnFailureListener { onResult(null) }
+    }
 }

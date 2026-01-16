@@ -18,14 +18,17 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.DateRange
-import androidx.compose.material.icons.filled.Search // Ikon Search
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Person // <--- IMPORT BARU (Ikon Orang)
 import androidx.compose.ui.Alignment
 import com.example.crabsupply.data.model.Product
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
-    onLogoutClick: () -> Unit = {},
+    // onLogoutClick DIHAPUS, dipindah ke halaman Profil
+    onProfileClick: () -> Unit = {}, // <--- PARAMETER BARU (Ke Profil)
+
     onAddProductClick: () -> Unit,
     onEditClick: (Product) -> Unit = {},
     onDeleteClick: (Product) -> Unit = {},
@@ -35,15 +38,17 @@ fun HomeScreen(
 ) {
     val viewModel: HomeViewModel = viewModel()
 
-    // Ambil data hasil filter, BUKAN data mentah
+    // Ambil data hasil filter
     val productList by viewModel.filteredProducts.collectAsState()
     val role by viewModel.userRole.collectAsState()
-    val searchText by viewModel.searchQuery.collectAsState() // Text yang diketik
+    val searchText by viewModel.searchQuery.collectAsState()
 
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text("Katalog ($role)") },
+
+                // Ikon Kiri (List Admin / History Buyer)
                 navigationIcon = {
                     if (role == "admin") {
                         IconButton(onClick = onAdminOrdersClick) {
@@ -55,12 +60,12 @@ fun HomeScreen(
                         }
                     }
                 },
+
+                // Ikon Kanan (Profil Akun)
                 actions = {
-                    TextButton(onClick = {
-                        viewModel.logout()
-                        onLogoutClick()
-                    }) {
-                        Text("Keluar", color = MaterialTheme.colorScheme.error)
+                    // TOMBOL KELUAR DIGANTI IKON PROFIL
+                    IconButton(onClick = onProfileClick) {
+                        Icon(Icons.Default.Person, contentDescription = "Profil Akun")
                     }
                 }
             )
@@ -83,7 +88,7 @@ fun HomeScreen(
                 .padding(paddingValues)
                 .padding(16.dp)
         ) {
-            // --- KOLOM PENCARIAN (BARU) ---
+            // --- KOLOM PENCARIAN ---
             OutlinedTextField(
                 value = searchText,
                 onValueChange = { viewModel.onSearchTextChange(it) },
@@ -122,7 +127,7 @@ fun HomeScreen(
     }
 }
 
-// ProductCard Tetap Sama (Tidak Perlu Diubah)
+// ProductCard Tetap Sama
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProductCard(
