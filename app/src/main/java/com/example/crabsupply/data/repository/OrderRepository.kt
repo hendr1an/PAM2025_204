@@ -48,4 +48,27 @@ class OrderRepository {
             .addOnSuccessListener { onResult(true) }
             .addOnFailureListener { onResult(false) }
     }
+
+    fun getOrdersByBuyerId(userId: String): Flow<List<Order>> = callbackFlow {
+        val listener = firestore.collection("orders")
+            .whereEqualTo("buyerId", userId) // <--- Filter: Hanya ambil punya user ini
+            // (Opsional) .orderBy("timestamp", Query.Direction.DESCENDING)
+            // Catatan: Jika pakai orderBy + whereEqualTo, Firebase minta buat Index di Console.
+            // Biar tidak ribet, kita urutkan manual di kodingan saja (Kotlin).
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    close(error)
+                    return@addSnapshotListener
+                }
+                if (snapshot != null) {
+                    val orders = snapshot.documents.map { doc ->
+                        doc.toObject(Order::class.java)!!.copy(id = doc.id)
+                    }
+                    // Kita urutkan di sini (Terbaru di atas)
+                    val sortedOrders = orders.sortedByDescending { it.timestamp }
+                    trySend(sortedOrders)
+                }
+            }
+        awaitClose { listener.remove() }
+    }
 }
