@@ -16,6 +16,7 @@ import java.util.Locale
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.List // <--- IMPORT BARU (Ikon List)
 import androidx.compose.ui.Alignment
 import com.example.crabsupply.data.model.Product
 
@@ -26,8 +27,9 @@ fun HomeScreen(
     onAddProductClick: () -> Unit,
     onEditClick: (Product) -> Unit = {},
     onDeleteClick: (Product) -> Unit = {},
-    // PARAMETER BARU: Aksi saat kartu diklik
-    onProductClick: (Product) -> Unit = {}
+    onProductClick: (Product) -> Unit = {},
+    // PARAMETER BARU: Aksi untuk membuka daftar pesanan (Admin)
+    onOrderListClick: () -> Unit = {}
 ) {
     val viewModel: HomeViewModel = viewModel()
 
@@ -37,7 +39,21 @@ fun HomeScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Katalog Kepiting ($role)") },
+                title = { Text("Katalog ($role)") },
+
+                // BAGIAN BARU: TOMBOL LIST PESANAN (POJOK KIRI)
+                navigationIcon = {
+                    // Hanya muncul jika User adalah Admin
+                    if (role == "admin") {
+                        IconButton(onClick = onOrderListClick) {
+                            Icon(
+                                imageVector = Icons.Default.List,
+                                contentDescription = "Daftar Pesanan"
+                            )
+                        }
+                    }
+                },
+
                 actions = {
                     TextButton(onClick = {
                         viewModel.logout()
@@ -72,7 +88,6 @@ fun HomeScreen(
                     isAdmin = (role == "admin"),
                     onEdit = { onEditClick(product) },
                     onDelete = { onDeleteClick(product) },
-                    // SAMBUNGKAN AKSI KLIK DI SINI
                     onClick = { onProductClick(product) }
                 )
                 Spacer(modifier = Modifier.height(12.dp))
@@ -81,17 +96,17 @@ fun HomeScreen(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class) // Tambahkan anotasi ini karena Card(onClick) eksperimental di beberapa versi
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProductCard(
     product: Product,
     isAdmin: Boolean,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
-    onClick: () -> Unit // PARAMETER BARU DI KARTU
+    onClick: () -> Unit
 ) {
     Card(
-        onClick = onClick, // PASANG AKSI KLIK PADA KARTU
+        onClick = onClick,
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
@@ -102,7 +117,6 @@ fun ProductCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Nama Produk
                 Text(
                     text = product.name,
                     fontSize = 18.sp,
@@ -110,7 +124,6 @@ fun ProductCard(
                     modifier = Modifier.weight(1f)
                 )
 
-                // Tombol Edit/Hapus (Khusus Admin)
                 if (isAdmin) {
                     Row {
                         IconButton(onClick = onEdit) {
