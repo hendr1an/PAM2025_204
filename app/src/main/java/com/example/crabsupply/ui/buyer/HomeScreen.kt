@@ -1,15 +1,21 @@
 package com.example.crabsupply.ui.buyer
 
+import androidx.compose.foundation.background // Import Baru
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape // Import Baru
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip // Import Baru
+import androidx.compose.ui.graphics.Color // Import Baru
+import androidx.compose.ui.layout.ContentScale // Import Baru
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import coil.compose.AsyncImage // <--- PENTING: Import Coil untuk Gambar
 import com.example.crabsupply.viewmodel.HomeViewModel
 import java.text.NumberFormat
 import java.util.Locale
@@ -20,7 +26,7 @@ import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Info // <--- Ikon Dashboard
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.ui.Alignment
 import com.example.crabsupply.data.model.Product
 
@@ -32,9 +38,7 @@ fun HomeScreen(
     onEditClick: (Product) -> Unit = {},
     onDeleteClick: (Product) -> Unit = {},
     onProductClick: (Product) -> Unit = {},
-
-    // GANTI NAMA PARAMETER INI AGAR JELAS
-    onAdminDashboardClick: () -> Unit = {}, // Dulu: onAdminOrdersClick
+    onAdminDashboardClick: () -> Unit = {},
     onBuyerHistoryClick: () -> Unit = {}
 ) {
     val viewModel: HomeViewModel = viewModel()
@@ -46,8 +50,6 @@ fun HomeScreen(
         topBar = {
             TopAppBar(
                 title = { Text("Katalog ($role)") },
-
-                // Ikon Kiri (Dashboard Admin / History Buyer)
                 navigationIcon = {
                     if (role == "admin") {
                         // ADMIN: KE DASHBOARD
@@ -61,8 +63,6 @@ fun HomeScreen(
                         }
                     }
                 },
-
-                // Ikon Kanan (Profil)
                 actions = {
                     IconButton(onClick = onProfileClick) {
                         Icon(Icons.Default.Person, contentDescription = "Profil Akun")
@@ -119,30 +119,91 @@ fun HomeScreen(
     }
 }
 
-// ProductCard Tetap Sama
+// --- BAGIAN INI YANG DIREVISI TOTAL (TAMPILKAN GAMBAR) ---
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ProductCard(product: Product, isAdmin: Boolean, onEdit: () -> Unit, onDelete: () -> Unit, onClick: () -> Unit) {
+fun ProductCard(
+    product: Product,
+    isAdmin: Boolean,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit,
+    onClick: () -> Unit
+) {
     Card(
         onClick = onClick,
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-                Text(text = product.name, fontSize = 18.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
-                if (isAdmin) {
-                    Row {
-                        IconButton(onClick = onEdit) { Icon(Icons.Default.Edit, contentDescription = "Edit", tint = MaterialTheme.colorScheme.primary) }
-                        IconButton(onClick = onDelete) { Icon(Icons.Default.Delete, contentDescription = "Hapus", tint = MaterialTheme.colorScheme.error) }
+        // Gunakan ROW agar Gambar di Kiri, Teks di Kanan
+        Row(
+            modifier = Modifier
+                .padding(12.dp)
+                .fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // 1. BAGIAN GAMBAR (KIRI)
+            Box(
+                modifier = Modifier
+                    .size(80.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(Color.Gray)
+            ) {
+                if (product.imageUrl.isNotEmpty()) {
+                    AsyncImage(
+                        model = product.imageUrl,
+                        contentDescription = "Foto Produk",
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                } else {
+                    // Placeholder jika tidak ada gambar
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Text("No Img", fontSize = 10.sp, color = Color.White)
                     }
                 }
             }
-            Text(text = "${product.species} • ${product.condition}", fontSize = 14.sp)
-            Spacer(modifier = Modifier.height(8.dp))
-            val formatRp = NumberFormat.getCurrencyInstance(Locale("id", "ID")).format(product.priceRetail)
-            Text(text = formatRp, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+
+            Spacer(modifier = Modifier.width(16.dp))
+
+            // 2. BAGIAN INFO TEKS (KANAN)
+            Column(modifier = Modifier.weight(1f)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = product.name,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1
+                    )
+
+                    if (isAdmin) {
+                        Row {
+                            IconButton(onClick = onEdit, modifier = Modifier.size(24.dp)) {
+                                Icon(Icons.Default.Edit, contentDescription = "Edit", tint = MaterialTheme.colorScheme.primary)
+                            }
+                            Spacer(modifier = Modifier.width(8.dp))
+                            IconButton(onClick = onDelete, modifier = Modifier.size(24.dp)) {
+                                Icon(Icons.Default.Delete, contentDescription = "Hapus", tint = MaterialTheme.colorScheme.error)
+                            }
+                        }
+                    }
+                }
+
+                Text(
+                    text = "${product.species} • ${product.size}",
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                val formatRp = NumberFormat.getCurrencyInstance(Locale("id", "ID")).format(product.priceRetail)
+                Text(text = formatRp, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                Text(text = "Stok: ${product.stock} kg", fontSize = 12.sp)
+            }
         }
     }
 }
