@@ -1,18 +1,19 @@
 package com.example.crabsupply.ui
 
+import androidx.compose.foundation.Image // <--- Ganti Import
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ShoppingCart // Atau icon kepiting kalau ada asset
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource // <--- Import Penting
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.crabsupply.R // <--- Pastikan Import R ada (sesuaikan package Anda)
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.delay
 
@@ -21,38 +22,35 @@ fun SplashScreen(
     onNavigateToHome: () -> Unit,
     onNavigateToLogin: () -> Unit
 ) {
-    // Logika Timer & Cek Login
     LaunchedEffect(Unit) {
-        delay(2500) // Tahan selama 2.5 detik (Biar user sempat lihat logo)
-
-        // Cek apakah user sudah login?
+        delay(2500)
         val currentUser = FirebaseAuth.getInstance().currentUser
         if (currentUser != null) {
-            onNavigateToHome() // Kalau ada, langsung Home
+            onNavigateToHome()
         } else {
-            onNavigateToLogin() // Kalau tidak, suruh Login
+            onNavigateToLogin()
         }
     }
 
-    // Tampilan UI Splash
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.primary), // Latar belakang Biru/Primary
+            .background(MaterialTheme.colorScheme.primary),
         contentAlignment = Alignment.Center
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            // Ikon Besar
-            Icon(
-                imageVector = Icons.Default.ShoppingCart, // Ganti icon sesuai selera
-                contentDescription = "Logo",
-                tint = Color.White,
-                modifier = Modifier.size(100.dp)
+
+            // --- BAGIAN LOGO KEPITING ---
+            Image(
+                // Panggil file logo_crab yang ada di drawable
+                painter = painterResource(id = R.drawable.logo_crab),
+                contentDescription = "Logo Crab Supply",
+                modifier = Modifier.size(120.dp) // Sesuaikan ukuran
             )
+            // ----------------------------
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Nama Aplikasi
             Text(
                 text = "Crab Supply",
                 fontSize = 32.sp,
@@ -68,7 +66,6 @@ fun SplashScreen(
 
             Spacer(modifier = Modifier.height(48.dp))
 
-            // Loading Putar Kecil
             CircularProgressIndicator(
                 color = Color.White,
                 modifier = Modifier.size(24.dp),
