@@ -13,11 +13,12 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.crabsupply.data.model.Product
 import com.example.crabsupply.ui.admin.AddProductScreen
+import com.example.crabsupply.ui.admin.AdminOrderScreen // <--- IMPORT BARU
 import com.example.crabsupply.ui.admin.EditProductScreen
 import com.example.crabsupply.ui.auth.LoginScreen
 import com.example.crabsupply.ui.auth.RegisterScreen
 import com.example.crabsupply.ui.buyer.HomeScreen
-import com.example.crabsupply.ui.buyer.ProductDetailScreen // <--- IMPORT BARU
+import com.example.crabsupply.ui.buyer.ProductDetailScreen
 import com.example.crabsupply.ui.theme.CrabSupplyTheme
 import com.example.crabsupply.viewmodel.AdminViewModel
 import com.google.firebase.auth.FirebaseAuth
@@ -84,6 +85,11 @@ class MainActivity : ComponentActivity() {
                                 onProductClick = { product ->
                                     selectedProduct = product // Simpan data produknya
                                     currentScreen = "detail_product" // Pindah layar
+                                },
+
+                                // AKSI BARU: Buka Daftar Pesanan (Khusus Admin)
+                                onOrderListClick = {
+                                    currentScreen = "admin_orders"
                                 }
                             )
                         }
@@ -100,7 +106,6 @@ class MainActivity : ComponentActivity() {
                                 )
                             }
                         }
-                        // HALAMAN DETAIL PESANAN (BARU)
                         "detail_product" -> {
                             selectedProduct?.let { product ->
                                 ProductDetailScreen(
@@ -108,6 +113,13 @@ class MainActivity : ComponentActivity() {
                                     onBackClick = { currentScreen = "home" }
                                 )
                             }
+                        }
+
+                        // HALAMAN BARU: ADMIN KELOLA PESANAN
+                        "admin_orders" -> {
+                            AdminOrderScreen(
+                                onBackClick = { currentScreen = "home" }
+                            )
                         }
                     }
                 }
