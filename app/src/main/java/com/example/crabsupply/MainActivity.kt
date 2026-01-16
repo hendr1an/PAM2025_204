@@ -12,8 +12,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.crabsupply.data.model.Product
+import com.example.crabsupply.ui.SplashScreen // <--- IMPORT BARU
 import com.example.crabsupply.ui.admin.AddProductScreen
-import com.example.crabsupply.ui.admin.AdminDashboardScreen // <--- IMPORT BARU
+import com.example.crabsupply.ui.admin.AdminDashboardScreen
 import com.example.crabsupply.ui.admin.AdminOrderScreen
 import com.example.crabsupply.ui.admin.EditProductScreen
 import com.example.crabsupply.ui.auth.LoginScreen
@@ -24,7 +25,6 @@ import com.example.crabsupply.ui.buyer.HomeScreen
 import com.example.crabsupply.ui.buyer.ProductDetailScreen
 import com.example.crabsupply.ui.theme.CrabSupplyTheme
 import com.example.crabsupply.viewmodel.AdminViewModel
-import com.google.firebase.auth.FirebaseAuth
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -43,40 +43,43 @@ class MainActivity : ComponentActivity() {
                         }
                     }
 
-                    val currentUser = FirebaseAuth.getInstance().currentUser
-                    val startDestination = if (currentUser != null) "home" else "login"
+                    // --- UBAH BAGIAN INI ---
+                    // Tidak perlu cek Auth di sini lagi, biarkan Splash yang kerja
+                    // Start awal selalu "splash"
+                    var currentScreen by remember { mutableStateOf("splash") }
 
-                    var currentScreen by remember { mutableStateOf(startDestination) }
                     var selectedProduct by remember { mutableStateOf<Product?>(null) }
 
                     when (currentScreen) {
+                        // HALAMAN BARU: SPLASH
+                        "splash" -> SplashScreen(
+                            onNavigateToHome = { currentScreen = "home" },
+                            onNavigateToLogin = { currentScreen = "login" }
+                        )
+
                         "login" -> LoginScreen(onLoginSuccess = { currentScreen = "home" }, onRegisterClick = { currentScreen = "register" })
                         "register" -> RegisterScreen(onRegisterSuccess = { currentScreen = "login" }, onLoginClick = { currentScreen = "login" })
+
                         "home" -> HomeScreen(
                             onProfileClick = { currentScreen = "profile" },
                             onAddProductClick = { currentScreen = "add_product" },
                             onEditClick = { product -> selectedProduct = product; currentScreen = "edit_product" },
                             onDeleteClick = { product -> adminViewModel.deleteProduct(product.id) },
                             onProductClick = { product -> selectedProduct = product; currentScreen = "detail_product" },
-
-                            // UPDATE NAVIGASI: Ke Dashboard dulu
                             onAdminDashboardClick = { currentScreen = "admin_dashboard" },
                             onBuyerHistoryClick = { currentScreen = "buyer_orders" }
                         )
+
                         "add_product" -> AddProductScreen(onBackClick = { currentScreen = "home" })
                         "edit_product" -> selectedProduct?.let { EditProductScreen(productToEdit = it, onBackClick = { currentScreen = "home" }) }
                         "detail_product" -> selectedProduct?.let { ProductDetailScreen(product = it, onBackClick = { currentScreen = "home" }) }
                         "profile" -> ProfileScreen(onBackClick = { currentScreen = "home" }, onLogoutSuccess = { currentScreen = "login" })
                         "buyer_orders" -> BuyerOrderScreen(onBackClick = { currentScreen = "home" })
-
-                        // --- ALUR ADMIN BARU ---
                         "admin_dashboard" -> AdminDashboardScreen(
                             onBackClick = { currentScreen = "home" },
-                            onSeeOrdersClick = { currentScreen = "admin_orders" } // Dari Dashboard ke List Pesanan
+                            onSeeOrdersClick = { currentScreen = "admin_orders" }
                         )
-                        "admin_orders" -> AdminOrderScreen(
-                            onBackClick = { currentScreen = "admin_dashboard" } // Balik ke Dashboard
-                        )
+                        "admin_orders" -> AdminOrderScreen(onBackClick = { currentScreen = "admin_dashboard" })
                     }
                 }
             }
