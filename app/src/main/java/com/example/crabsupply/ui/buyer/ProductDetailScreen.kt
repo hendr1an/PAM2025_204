@@ -133,9 +133,16 @@ fun ProductDetailScreen(
             Text("Jumlah Pesanan (Kg)", fontWeight = FontWeight.Bold)
             OutlinedTextField(
                 value = qty,
-                onValueChange = { if (it.all { char -> char.isDigit() }) qty = it },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                modifier = Modifier.fillMaxWidth()
+                onValueChange = { input ->
+                    // Validasi: Hanya boleh angka dan satu titik desimal
+                    if (input.all { it.isDigit() || it == '.' } && input.count { it == '.' } <= 1) {
+                        qty = input
+                    }
+                },
+                // Ubah keyboard jadi Decimal agar muncul titik/koma
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text("Contoh: 0.5 atau 1.5") }
             )
 
             Spacer(modifier = Modifier.height(8.dp))

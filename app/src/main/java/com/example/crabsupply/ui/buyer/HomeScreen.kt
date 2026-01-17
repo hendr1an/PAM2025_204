@@ -44,11 +44,10 @@ fun HomeScreen(
 ) {
     val viewModel: HomeViewModel = viewModel()
 
-    // --- PERBAIKAN: Refresh Role Setiap Kali Halaman Dibuka ---
+    // Refresh Role Setiap Kali Halaman Dibuka
     LaunchedEffect(Unit) {
         viewModel.refreshUserRole()
     }
-    // ----------------------------------------------------------
 
     val productList by viewModel.filteredProducts.collectAsState()
     val role by viewModel.userRole.collectAsState()
@@ -144,7 +143,15 @@ fun HomeScreen(
                         isAdmin = (role == "admin"),
                         onEdit = { onEditClick(product) },
                         onDelete = { onDeleteClick(product) },
-                        onClick = { onProductClick(product) }
+                        onClick = {
+                            if (role == "admin") {
+                                // Jika Admin klik kartu, masuk ke EDIT (bukan Order)
+                                onEditClick(product)
+                            } else {
+                                // Jika Buyer klik kartu, baru masuk ke ORDER
+                                onProductClick(product)
+                            }
+                        }
                     )
                     Spacer(modifier = Modifier.height(12.dp))
                 }
@@ -153,9 +160,16 @@ fun HomeScreen(
     }
 }
 
+// --- BAGIAN UPDATE (PRODUCT CARD) ---
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ProductCard(product: Product, isAdmin: Boolean, onEdit: () -> Unit, onDelete: () -> Unit, onClick: () -> Unit) {
+fun ProductCard(
+    product: Product,
+    isAdmin: Boolean,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit,
+    onClick: () -> Unit
+) {
     Card(
         onClick = onClick,
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
@@ -166,6 +180,7 @@ fun ProductCard(product: Product, isAdmin: Boolean, onEdit: () -> Unit, onDelete
             modifier = Modifier.padding(12.dp).fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            // 1. GAMBAR PRODUK
             Box(
                 modifier = Modifier.size(80.dp).clip(RoundedCornerShape(8.dp)).background(Color.Gray)
             ) {
@@ -182,22 +197,52 @@ fun ProductCard(product: Product, isAdmin: Boolean, onEdit: () -> Unit, onDelete
                     }
                 }
             }
+
             Spacer(modifier = Modifier.width(16.dp))
+
+            // 2. INFO PRODUK
             Column(modifier = Modifier.weight(1f)) {
+                // Baris Judul & Tombol Admin
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     Text(text = product.name, fontSize = 16.sp, fontWeight = FontWeight.Bold, maxLines = 1)
                     if (isAdmin) {
                         Row {
-                            IconButton(onClick = onEdit, modifier = Modifier.size(24.dp)) { Icon(Icons.Default.Edit, contentDescription = "Edit", tint = MaterialTheme.colorScheme.primary) }
+                            IconButton(onClick = onEdit, modifier = Modifier.size(24.dp)) {
+                                Icon(Icons.Default.Edit, contentDescription = "Edit", tint = MaterialTheme.colorScheme.primary)
+                            }
                             Spacer(modifier = Modifier.width(8.dp))
-                            IconButton(onClick = onDelete, modifier = Modifier.size(24.dp)) { Icon(Icons.Default.Delete, contentDescription = "Hapus", tint = MaterialTheme.colorScheme.error) }
+                            IconButton(onClick = onDelete, modifier = Modifier.size(24.dp)) {
+                                Icon(Icons.Default.Delete, contentDescription = "Hapus", tint = MaterialTheme.colorScheme.error)
+                            }
                         }
                     }
                 }
-                Text(text = "${product.species} • ${product.condition}", fontSize = 12.sp)
+
+                // --- LOGIKA TAMPILAN KATEGORI (KEPITING vs NON-KEPITING) ---
+                if (product.category == "Kepiting") {
+                    // Jika Kepiting, tampilkan Spesies & Kondisi
+                    Text(
+                        text = "${product.species} • ${product.condition} • ${product.size}",
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                } else {
+                    // Jika Udang/Cumi, tampilkan label generic
+                    Text(
+                        text = "Fresh Seafood",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = Color(0xFF009688) // Warna Teal/Hijau Laut
+                    )
+                }
+
                 Spacer(modifier = Modifier.height(4.dp))
+
+                // Harga & Stok
                 val formatRp = NumberFormat.getCurrencyInstance(Locale("id", "ID")).format(product.priceRetail)
                 Text(text = formatRp, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+
+                // Stok otomatis Desimal (Double)
                 Text(text = "Stok: ${product.stock} kg", fontSize = 12.sp)
             }
         }

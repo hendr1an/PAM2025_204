@@ -12,7 +12,8 @@ data class Product(
     var priceRetail: Int = 0,        // Harga Eceran (Normal)
     var priceWholesale: Int = 0,     // Harga Grosir (Murah)
 
-    var stock: Int = 0,              // Jumlah Stok Fisik
+    var stock: Double = 0.0,
+    val category: String = "Kepiting",
     var isAvailable: Boolean = true, // Toggle Status: Tersedia/Habis [SRS 3.4.3]
     var imageUrl: String = ""        // URL Foto dari Firebase Storage
 )

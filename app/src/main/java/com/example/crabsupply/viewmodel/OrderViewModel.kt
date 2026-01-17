@@ -31,6 +31,7 @@ class OrderViewModel : ViewModel() {
     private val _isWholesale = MutableStateFlow(false)
     val isWholesale: StateFlow<Boolean> = _isWholesale
 
+    // Koordinat Toko (Sesuai yang kamu set sebelumnya)
     private val STORE_LAT = -7.7817801321614635
     private val STORE_LONG = 110.31995696627142
 
@@ -44,16 +45,18 @@ class OrderViewModel : ViewModel() {
     private val _finalTotal = MutableStateFlow(0)
     val finalTotal: StateFlow<Int> = _finalTotal
 
-    // 1. Fungsi Hitung Harga Barang (Grosir vs Eceran)
+    // 1. FUNGSI HITUNG HARGA BARANG (UPDATE: MENDUKUNG DESIMAL/DOUBLE)
     fun calculatePrice(qtyInput: String, product: Product) {
-        val qty = qtyInput.toIntOrNull() ?: 0
+        // Ubah input text jadi Double (Desimal)
+        val qty = qtyInput.toDoubleOrNull() ?: 0.0
 
-        // Logika SRS: Jika qty >= 10kg, pakai Harga Grosir
-        if (qty >= 10) {
-            _calculatedPrice.value = product.priceWholesale * qty
+        // Logika SRS: Jika qty >= 10.0 kg, pakai Harga Grosir
+        if (qty >= 10.0) {
+            // Rumus: Harga (Int) x Berat (Double). Hasilnya dibulatkan kembali ke Int (Rupiah)
+            _calculatedPrice.value = (product.priceWholesale * qty).toInt()
             _isWholesale.value = true
         } else {
-            _calculatedPrice.value = product.priceRetail * qty
+            _calculatedPrice.value = (product.priceRetail * qty).toInt()
             _isWholesale.value = false
         }
 
@@ -61,7 +64,7 @@ class OrderViewModel : ViewModel() {
         updateFinalTotal()
     }
 
-    // 2. Fungsi Hitung Jarak & Ongkir (BARU)
+    // 2. Fungsi Hitung Jarak & Ongkir
     fun calculateShipping(userLat: Double, userLong: Double) {
         // Rumus Haversine (Hitung jarak antar 2 koordinat bumi)
         val r = 6371.0 // Jari-jari bumi (km)
@@ -76,7 +79,6 @@ class OrderViewModel : ViewModel() {
         _distanceKm.value = distance
 
         // LOGIKA ONGKIR: Rp 5.000 per 2 KM (Pembulatan ke atas)
-        // Contoh: 3.5 km -> dibulatkan jadi 4km -> (4/2)*5000 = 10.000
         val cost = (ceil(distance / 2.0) * 5000).toInt()
         _shippingCost.value = cost
 
@@ -89,7 +91,7 @@ class OrderViewModel : ViewModel() {
         _finalTotal.value = _calculatedPrice.value + _shippingCost.value
     }
 
-    // 4. Fungsi Submit Order (Simpan ke Database)
+    // 4. FUNGSI SUBMIT ORDER (UPDATE: MENDUKUNG DESIMAL/DOUBLE)
     fun submitOrder(
         product: Product,
         qtyInput: String,
@@ -107,9 +109,12 @@ class OrderViewModel : ViewModel() {
             return
         }
 
-        val qty = qtyInput.toIntOrNull() ?: 0
-        if (qty <= 0) {
-            _orderStatus.value = "Minimal pembelian 1 kg!"
+        // Konversi input ke Double
+        val qty = qtyInput.toDoubleOrNull() ?: 0.0
+
+        // Validasi minimal 0.1 kg (bukan 0 atau 1)
+        if (qty <= 0.0) {
+            _orderStatus.value = "Minimal pembelian 0.1 kg!"
             _isLoading.value = false
             return
         }
@@ -133,7 +138,7 @@ class OrderViewModel : ViewModel() {
                 val buyerName = document.getString("name") ?: "Tanpa Nama"
                 val buyerPhone = document.getString("phone") ?: "-"
 
-                val finalPricePerKg = if (qty >= 10) product.priceWholesale else product.priceRetail
+                val finalPricePerKg = if (qty >= 10.0) product.priceWholesale else product.priceRetail
 
                 // Gunakan FINAL TOTAL (Barang + Ongkir)
                 val totalBayar = _finalTotal.value
@@ -145,7 +150,7 @@ class OrderViewModel : ViewModel() {
                     productName = product.name,
                     productSpecies = product.species,
                     pricePerKg = finalPricePerKg,
-                    quantity = qty,
+                    quantity = qty, // Simpan sebagai Double (misal: 1.5)
                     totalPrice = totalBayar, // Simpan total yang sudah kena ongkir
                     address = "$address (Jarak: ${String.format("%.1f", _distanceKm.value)} km)",
                     status = "pending"

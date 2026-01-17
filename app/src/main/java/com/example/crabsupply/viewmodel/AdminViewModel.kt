@@ -3,7 +3,7 @@ package com.example.crabsupply.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.crabsupply.data.model.Product
-import com.example.crabsupply.data.repository.OrderRepository // <--- Import Baru
+import com.example.crabsupply.data.repository.OrderRepository
 import com.example.crabsupply.data.repository.ProductRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -11,7 +11,7 @@ import kotlinx.coroutines.launch
 
 class AdminViewModel : ViewModel() {
     private val repository = ProductRepository()
-    private val orderRepository = OrderRepository() // <--- Tambahkan Repository Order
+    private val orderRepository = OrderRepository()
 
     // Status Upload/Delete
     private val _uploadStatus = MutableStateFlow<String?>(null)
@@ -20,7 +20,7 @@ class AdminViewModel : ViewModel() {
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading
 
-    // --- STATISTIK DASHBOARD (BARU) ---
+    // --- STATISTIK DASHBOARD ---
     private val _totalRevenue = MutableStateFlow(0)
     val totalRevenue: StateFlow<Int> = _totalRevenue
 
@@ -51,19 +51,52 @@ class AdminViewModel : ViewModel() {
         }
     }
 
-    // --- FUNGSI LAMA (TETAP ADA) ---
+    // --- FUNGSI TAMBAH PRODUK (PERBAIKAN: BYPASS UPLOAD) ---
     fun uploadProduct(
-        name: String, species: String, condition: String,
-        size: String, priceRetail: String, stock: String
+        name: String,
+        category: String,
+        species: String,
+        condition: String,
+        size: String,
+        priceRetail: String,
+        stock: String,
+        imageUrl: String // Menerima Link Gambar langsung (String)
     ) {
         _isLoading.value = true
+
+        // 1. LOGIKA KATEGORI: Atur strip "-" jika bukan kepiting
+        val finalSpecies = if (category == "Kepiting") species else "-"
+        val finalCondition = if (category == "Kepiting") condition else "-"
+        val finalSize = if (category == "Kepiting") size else "-"
+
+        // 2. LANGSUNG SIMPAN KE DATABASE (TANPA UPLOAD KE STORAGE)
+        // Kita langsung oper `imageUrl` ke fungsi simpan.
+        saveProductToFirestore(name, category, finalSpecies, finalCondition, finalSize, priceRetail, stock, imageUrl)
+    }
+
+    // Fungsi Bantuan untuk Menyimpan ke Database
+    private fun saveProductToFirestore(
+        name: String,
+        category: String,
+        species: String, condition: String,
+        size: String, priceRetail: String, stock: String,
+        imageUrl: String
+    ) {
         val priceInt = priceRetail.toIntOrNull() ?: 0
-        val stockInt = stock.toIntOrNull() ?: 0
+        // Logika Desimal
+        val stockDouble = stock.toDoubleOrNull() ?: 0.0
 
         val newProduct = Product(
-            name = name, species = species, condition = condition,
-            size = size, priceRetail = priceInt, priceWholesale = priceInt - 10000,
-            stock = stockInt, isAvailable = stockInt > 0
+            name = name,
+            category = category,
+            species = species,
+            condition = condition,
+            size = size,
+            priceRetail = priceInt,
+            priceWholesale = priceInt - 10000,
+            stock = stockDouble,
+            isAvailable = stockDouble > 0.0,
+            imageUrl = imageUrl // Simpan link yang diinput admin
         )
 
         repository.addProduct(newProduct) { success, message ->
@@ -72,6 +105,7 @@ class AdminViewModel : ViewModel() {
         }
     }
 
+    // --- FUNGSI UPDATE & DELETE ---
     fun deleteProduct(productId: String) {
         _isLoading.value = true
         repository.deleteProduct(productId) { success, message ->
@@ -86,12 +120,14 @@ class AdminViewModel : ViewModel() {
     ) {
         _isLoading.value = true
         val priceInt = priceRetail.toIntOrNull() ?: 0
-        val stockInt = stock.toIntOrNull() ?: 0
+        val stockDouble = stock.toDoubleOrNull() ?: 0.0
 
+        // Asumsi saat update gambar tidak berubah dulu (atau logic lain)
+        // Disini kita buat object product sederhana untuk update data teks
         val updatedProduct = Product(
             id = id, name = name, species = species, condition = condition,
             size = size, priceRetail = priceInt, priceWholesale = priceInt - 10000,
-            stock = stockInt, isAvailable = stockInt > 0
+            stock = stockDouble, isAvailable = stockDouble > 0.0
         )
 
         repository.updateProduct(updatedProduct) { success, message ->
