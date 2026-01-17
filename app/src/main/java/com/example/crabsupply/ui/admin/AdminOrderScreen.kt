@@ -1,116 +1,76 @@
 package com.example.crabsupply.ui.admin
 
-import android.widget.Toast
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.crabsupply.data.model.Order
-import com.example.crabsupply.viewmodel.OrderViewModel
+import com.example.crabsupply.viewmodel.AdminViewModel
 import java.text.NumberFormat
 import java.util.Locale
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AdminOrderScreen(
-    onBackClick: () -> Unit
+    onBackClick: () -> Unit = {}, // Default kosong
+    onOrderClick: () -> Unit
 ) {
-    val viewModel: OrderViewModel = viewModel()
-    val orderList by viewModel.adminOrders.collectAsState()
-    val status by viewModel.orderStatus.collectAsState()
-    val context = LocalContext.current
+    val viewModel: AdminViewModel = viewModel()
+    val orders by viewModel.adminOrders.collectAsState()
 
-    // Load data saat layar dibuka
     LaunchedEffect(Unit) {
-        viewModel.loadOrdersForAdmin()
+        viewModel.loadDashboardStats() // Muat data order terbaru
     }
 
-    LaunchedEffect(status) {
-        status?.let {
-            Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
-            viewModel.resetStatus()
+    // LIST PESANAN (Tanpa Scaffold/TopBar karena sudah ada di MainScreen)
+    LazyColumn(
+        modifier = Modifier.fillMaxSize().padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        if (orders.isEmpty()) {
+            item { Text("Belum ada pesanan masuk.") }
         }
-    }
-
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Daftar Pesanan Masuk") },
-                navigationIcon = {
-                    Button(onClick = onBackClick) { Text("Kembali") }
-                }
-            )
-        }
-    ) { padding ->
-        LazyColumn(
-            modifier = Modifier.padding(padding).padding(16.dp)
-        ) {
-            if (orderList.isEmpty()) {
-                item { Text("Belum ada pesanan masuk.") }
-            }
-
-            items(orderList) { order ->
-                OrderCard(
-                    order = order,
-                    onUpdateStatus = { newStatus ->
-                        viewModel.updateStatus(order.id, newStatus)
-                    }
-                )
-                Spacer(modifier = Modifier.height(12.dp))
-            }
+        items(orders) { order ->
+            AdminOrderCard(order = order, onClick = {
+                viewModel.selectOrder(order) // Simpan order yang dipilih
+                onOrderClick() // Pindah layar
+            })
         }
     }
 }
 
 @Composable
-fun OrderCard(order: Order, onUpdateStatus: (String) -> Unit) {
-    // Tentukan warna kartu berdasarkan status
-    val cardColor = when (order.status) {
-        "pending" -> Color(0xFFFFF3E0) // Oranye Muda
-        "proses" -> Color(0xFFE3F2FD)  // Biru Muda
-        "selesai" -> Color(0xFFE8F5E9) // Hijau Muda
-        else -> Color.LightGray
+fun AdminOrderCard(order: Order, onClick: () -> Unit) {
+    val statusColor = when (order.status) {
+        "pending" -> Color(0xFFE0E0E0) // Abu
+        "proses" -> Color(0xFFFFF176) // Kuning
+        "selesai" -> Color(0xFFA5D6A7) // Hijau
+        else -> Color.White
     }
 
     Card(
-        colors = CardDefaults.cardColors(containerColor = cardColor),
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier.fillMaxWidth().clickable { onClick() },
+        elevation = CardDefaults.cardElevation(4.dp),
+        colors = CardDefaults.cardColors(containerColor = statusColor)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
-                Text(text = order.buyerName, fontWeight = FontWeight.Bold)
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Text(text = order.buyerName, fontWeight = FontWeight.Bold, fontSize = 18.sp)
                 Text(text = order.status.uppercase(), fontWeight = FontWeight.Bold)
             }
+            Spacer(modifier = Modifier.height(4.dp))
             Text("Barang: ${order.productName} (${order.quantity} Kg)")
 
             val formatRp = NumberFormat.getCurrencyInstance(Locale("id", "ID")).format(order.totalPrice)
-            Text("Total: $formatRp", color = MaterialTheme.colorScheme.primary)
-
-            Text("Alamat: ${order.address}", fontSize = 12.sp)
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // Tombol Aksi Admin
-            Row(horizontalArrangement = Arrangement.End, modifier = Modifier.fillMaxWidth()) {
-                if (order.status == "pending") {
-                    Button(onClick = { onUpdateStatus("proses") }) { Text("Proses") }
-                }
-                if (order.status == "proses") {
-                    Button(
-                        onClick = { onUpdateStatus("selesai") },
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50))
-                    ) { Text("Selesai") }
-                }
-            }
+            Text("Total: $formatRp", color = Color.Blue, fontWeight = FontWeight.Bold)
+            Text("Alamat: ${order.address}", maxLines = 1, fontSize = 12.sp)
         }
     }
 }

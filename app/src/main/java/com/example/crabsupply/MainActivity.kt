@@ -12,20 +12,22 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.crabsupply.data.model.Product
+import com.example.crabsupply.data.repository.AuthRepository
 import com.example.crabsupply.ui.SplashScreen
 import com.example.crabsupply.ui.admin.AddProductScreen
-import com.example.crabsupply.ui.admin.AdminDashboardScreen
-import com.example.crabsupply.ui.admin.AdminOrderScreen
+import com.example.crabsupply.ui.admin.AdminMainScreen
+import com.example.crabsupply.ui.admin.AdminOrderDetailScreen // Pastikan ini ter-import
 import com.example.crabsupply.ui.admin.EditProductScreen
 import com.example.crabsupply.ui.auth.LoginScreen
 import com.example.crabsupply.ui.auth.ProfileScreen
 import com.example.crabsupply.ui.auth.RegisterScreen
 import com.example.crabsupply.ui.buyer.BuyerOrderScreen
 import com.example.crabsupply.ui.buyer.HomeScreen
-import com.example.crabsupply.ui.buyer.MapPickerScreen // <--- IMPORT BARU (PETA)
+import com.example.crabsupply.ui.buyer.MapPickerScreen
 import com.example.crabsupply.ui.buyer.ProductDetailScreen
 import com.example.crabsupply.ui.theme.CrabSupplyTheme
 import com.example.crabsupply.viewmodel.AdminViewModel
+import com.google.firebase.auth.FirebaseAuth // Import untuk Logout
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -37,6 +39,7 @@ class MainActivity : ComponentActivity() {
                     val deleteStatus by adminViewModel.uploadStatus.collectAsState()
                     val context = LocalContext.current
 
+                    // Notifikasi Hapus
                     LaunchedEffect(deleteStatus) {
                         if (deleteStatus == "DELETE_SUCCESS") {
                             Toast.makeText(context, "Produk dihapus!", Toast.LENGTH_SHORT).show()
@@ -48,71 +51,109 @@ class MainActivity : ComponentActivity() {
                     var currentScreen by remember { mutableStateOf("splash") }
                     var selectedProduct by remember { mutableStateOf<Product?>(null) }
 
-                    // --- STATE UNTUK MENYIMPAN HASIL PETA (PENTING!) ---
-                    // Agar saat kembali dari Peta, datanya tidak hilang
+                    // State Peta
                     var selectedLat by remember { mutableStateOf("") }
                     var selectedLong by remember { mutableStateOf("") }
 
+                    // Fungsi Cek Role
+                    fun navigateBasedOnRole() {
+                        AuthRepository().getUserRole { role ->
+                            if (role == "admin") {
+                                currentScreen = "admin_main"
+                            } else {
+                                currentScreen = "home"
+                            }
+                        }
+                    }
+
                     when (currentScreen) {
                         "splash" -> SplashScreen(
-                            onNavigateToHome = { currentScreen = "home" },
+                            onNavigateToHome = { navigateBasedOnRole() },
                             onNavigateToLogin = { currentScreen = "login" }
                         )
 
-                        "login" -> LoginScreen(onLoginSuccess = { currentScreen = "home" }, onRegisterClick = { currentScreen = "register" })
-                        "register" -> RegisterScreen(onRegisterSuccess = { currentScreen = "login" }, onLoginClick = { currentScreen = "login" })
+                        "login" -> LoginScreen(
+                            onLoginSuccess = { navigateBasedOnRole() },
+                            onRegisterClick = { currentScreen = "register" }
+                        )
 
+                        "register" -> RegisterScreen(
+                            onRegisterSuccess = { currentScreen = "login" },
+                            onLoginClick = { currentScreen = "login" }
+                        )
+
+                        // --- HALAMAN BUYER ---
                         "home" -> HomeScreen(
                             onProfileClick = { currentScreen = "profile" },
-                            onAddProductClick = { currentScreen = "add_product" },
-                            onEditClick = { product -> selectedProduct = product; currentScreen = "edit_product" },
-                            onDeleteClick = { product -> adminViewModel.deleteProduct(product.id) },
-
-                            // SAAT PRODUK DIKLIK, RESET LOKASI DULU (BIAR BERSIH)
+                            onAddProductClick = { }, // Buyer gabisa
+                            onEditClick = { },
+                            onDeleteClick = { },
                             onProductClick = { product ->
                                 selectedProduct = product
-                                selectedLat = ""  // Reset lokasi lama
-                                selectedLong = "" // Reset lokasi lama
+                                selectedLat = ""
+                                selectedLong = ""
                                 currentScreen = "detail_product"
                             },
-
-                            onAdminDashboardClick = { currentScreen = "admin_dashboard" },
                             onBuyerHistoryClick = { currentScreen = "buyer_orders" }
                         )
 
-                        "add_product" -> AddProductScreen(onBackClick = { currentScreen = "home" })
-                        "edit_product" -> selectedProduct?.let { EditProductScreen(productToEdit = it, onBackClick = { currentScreen = "home" }) }
+                        // --- HALAMAN UTAMA ADMIN (DIPERBAIKI) ---
+                        "admin_main" -> AdminMainScreen(
+                            onNavigateToProfile = { currentScreen = "profile" },
 
-                        // --- UPDATE DETAIL PRODUCT ---
+                            // --- INI YANG TADI KURANG ---
+                            onLogOut = {
+                                FirebaseAuth.getInstance().signOut()
+                                currentScreen = "login"
+                            },
+                            // --------------------------
+
+                            onAddProduct = { currentScreen = "add_product" },
+                            onEditProduct = { product ->
+                                selectedProduct = product
+                                currentScreen = "edit_product"
+                            },
+                            onOrderDetailClick = { currentScreen = "admin_order_detail" }
+                        )
+
+                        // --- HALAMAN DETAIL ORDER ADMIN ---
+                        "admin_order_detail" -> AdminOrderDetailScreen(
+                            onBackClick = { currentScreen = "admin_main" }
+                        )
+
+                        // --- HALAMAN UMUM ---
+                        "add_product" -> AddProductScreen(onBackClick = { currentScreen = "admin_main" })
+
+                        "edit_product" -> selectedProduct?.let {
+                            EditProductScreen(productToEdit = it, onBackClick = { currentScreen = "admin_main" })
+                        }
+
                         "detail_product" -> selectedProduct?.let { product ->
                             ProductDetailScreen(
                                 product = product,
-                                initialLat = selectedLat,   // Kirim data Lat yang disimpan
-                                initialLong = selectedLong, // Kirim data Long yang disimpan
+                                initialLat = selectedLat,
+                                initialLong = selectedLong,
                                 onBackClick = { currentScreen = "home" },
-                                onOpenMap = { currentScreen = "map_picker" } // Buka Peta
+                                onOpenMap = { currentScreen = "map_picker" }
                             )
                         }
 
-                        // --- RUTE BARU: PETA (MAP PICKER) ---
                         "map_picker" -> MapPickerScreen(
                             onLocationSelected = { lat, long ->
-                                // Saat user klik "Pilih Lokasi Ini":
                                 selectedLat = lat.toString()
                                 selectedLong = long.toString()
-                                // Kembali ke halaman checkout
                                 currentScreen = "detail_product"
                             }
                         )
 
-                        "profile" -> ProfileScreen(onBackClick = { currentScreen = "home" }, onLogoutSuccess = { currentScreen = "login" })
-                        "buyer_orders" -> BuyerOrderScreen(onBackClick = { currentScreen = "home" })
-
-                        "admin_dashboard" -> AdminDashboardScreen(
-                            onBackClick = { currentScreen = "home" },
-                            onSeeOrdersClick = { currentScreen = "admin_orders" }
+                        "profile" -> ProfileScreen(
+                            onBackClick = {
+                                navigateBasedOnRole() // Cek role agar back-nya benar (ke AdminMain atau Home)
+                            },
+                            onLogoutSuccess = { currentScreen = "login" }
                         )
-                        "admin_orders" -> AdminOrderScreen(onBackClick = { currentScreen = "admin_dashboard" })
+
+                        "buyer_orders" -> BuyerOrderScreen(onBackClick = { currentScreen = "home" })
                     }
                 }
             }

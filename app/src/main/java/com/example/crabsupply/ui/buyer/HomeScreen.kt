@@ -22,35 +22,33 @@ import com.example.crabsupply.viewmodel.HomeViewModel
 import java.text.NumberFormat
 import java.util.Locale
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.DateRange
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.*
 import androidx.compose.ui.Alignment
 import com.example.crabsupply.data.model.Product
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
+    // Param Navigasi Standar
     onProfileClick: () -> Unit = {},
-    onAddProductClick: () -> Unit,
+    onAddProductClick: () -> Unit = {},
     onEditClick: (Product) -> Unit = {},
     onDeleteClick: (Product) -> Unit = {},
     onProductClick: (Product) -> Unit = {},
-    onAdminDashboardClick: () -> Unit = {},
-    onBuyerHistoryClick: () -> Unit = {}
+    onBuyerHistoryClick: () -> Unit = {},
+
+    // --- PARAMETER BARU UNTUK ADMIN ---
+    onMenuClick: () -> Unit = {}, // Buat buka Menu Kiri (Drawer)
+    isAdminMode: Boolean = false // Penanda apakah halaman ini dibuka di dalam Tab Admin
 ) {
     val viewModel: HomeViewModel = viewModel()
 
-    // Refresh Role Setiap Kali Halaman Dibuka
+    // Tetap refresh role untuk memastikan data sinkron
     LaunchedEffect(Unit) {
         viewModel.refreshUserRole()
     }
 
     val productList by viewModel.filteredProducts.collectAsState()
-    val role by viewModel.userRole.collectAsState()
     val searchText by viewModel.searchQuery.collectAsState()
     val selectedCategory by viewModel.selectedCategory.collectAsState()
 
@@ -59,27 +57,36 @@ fun HomeScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Katalog ($role)") },
+                // Judul berubah dinamis biar keren
+                title = { Text(if(isAdminMode) "Katalog Admin" else "Crab Supply") },
+
                 navigationIcon = {
-                    if (role == "admin") {
-                        IconButton(onClick = onAdminDashboardClick) {
-                            Icon(Icons.Default.Info, contentDescription = "Dashboard Admin")
+                    if (isAdminMode) {
+                        // JIKA ADMIN: Tampilkan Menu Garis 3 (Untuk buka Drawer Profil/Logout)
+                        IconButton(onClick = onMenuClick) {
+                            Icon(Icons.Default.Menu, contentDescription = "Menu Admin")
                         }
                     } else {
+                        // JIKA BUYER: Tampilkan Riwayat Pesanan
                         IconButton(onClick = onBuyerHistoryClick) {
                             Icon(Icons.Default.DateRange, contentDescription = "Riwayat")
                         }
                     }
                 },
                 actions = {
-                    IconButton(onClick = onProfileClick) {
-                        Icon(Icons.Default.Person, contentDescription = "Profil")
+                    if (!isAdminMode) {
+                        // JIKA BUYER: Masih butuh tombol profile di kanan atas
+                        IconButton(onClick = onProfileClick) {
+                            Icon(Icons.Default.Person, contentDescription = "Profil")
+                        }
                     }
+                    // JIKA ADMIN: Kanan atas KOSONG (Karena profil sudah pindah ke Menu Kiri/Drawer)
                 }
             )
         },
         floatingActionButton = {
-            if (role == "admin") {
+            // Tombol Tambah Produk HANYA untuk Admin
+            if (isAdminMode) {
                 FloatingActionButton(
                     onClick = onAddProductClick,
                     containerColor = MaterialTheme.colorScheme.primary,
@@ -140,15 +147,15 @@ fun HomeScreen(
                 items(productList) { product ->
                     ProductCard(
                         product = product,
-                        isAdmin = (role == "admin"),
+                        isAdmin = isAdminMode, // Gunakan param isAdminMode
                         onEdit = { onEditClick(product) },
                         onDelete = { onDeleteClick(product) },
                         onClick = {
-                            if (role == "admin") {
-                                // Jika Admin klik kartu, masuk ke EDIT (bukan Order)
+                            if (isAdminMode) {
+                                // ADMIN -> Edit
                                 onEditClick(product)
                             } else {
-                                // Jika Buyer klik kartu, baru masuk ke ORDER
+                                // BUYER -> Order
                                 onProductClick(product)
                             }
                         }
@@ -160,7 +167,7 @@ fun HomeScreen(
     }
 }
 
-// --- BAGIAN UPDATE (PRODUCT CARD) ---
+// --- PRODUCT CARD (SUDAH MANTAP) ---
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProductCard(
@@ -180,7 +187,7 @@ fun ProductCard(
             modifier = Modifier.padding(12.dp).fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // 1. GAMBAR PRODUK
+            // FOTO
             Box(
                 modifier = Modifier.size(80.dp).clip(RoundedCornerShape(8.dp)).background(Color.Gray)
             ) {
@@ -200,9 +207,8 @@ fun ProductCard(
 
             Spacer(modifier = Modifier.width(16.dp))
 
-            // 2. INFO PRODUK
+            // INFO
             Column(modifier = Modifier.weight(1f)) {
-                // Baris Judul & Tombol Admin
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     Text(text = product.name, fontSize = 16.sp, fontWeight = FontWeight.Bold, maxLines = 1)
                     if (isAdmin) {
@@ -218,31 +224,26 @@ fun ProductCard(
                     }
                 }
 
-                // --- LOGIKA TAMPILAN KATEGORI (KEPITING vs NON-KEPITING) ---
+                // KATEGORI PINTAR
                 if (product.category == "Kepiting") {
-                    // Jika Kepiting, tampilkan Spesies & Kondisi
                     Text(
                         text = "${product.species} • ${product.condition} • ${product.size}",
                         fontSize = 12.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 } else {
-                    // Jika Udang/Cumi, tampilkan label generic
                     Text(
                         text = "Fresh Seafood",
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Medium,
-                        color = Color(0xFF009688) // Warna Teal/Hijau Laut
+                        color = Color(0xFF009688) // Warna Teal Keren
                     )
                 }
 
                 Spacer(modifier = Modifier.height(4.dp))
 
-                // Harga & Stok
                 val formatRp = NumberFormat.getCurrencyInstance(Locale("id", "ID")).format(product.priceRetail)
                 Text(text = formatRp, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-
-                // Stok otomatis Desimal (Double)
                 Text(text = "Stok: ${product.stock} kg", fontSize = 12.sp)
             }
         }
